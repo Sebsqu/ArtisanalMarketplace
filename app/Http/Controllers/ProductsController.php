@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Cache;
 use App\Models\Products\Category;
 use App\Models\Products\Products;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ProductsController extends Controller
 {
