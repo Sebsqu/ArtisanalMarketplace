@@ -2,12 +2,15 @@
     <div class="max-w-[1200px] mx-auto flex items-center justify-between w-full">
         <div class="flex items-center gap-8">
             <a href="/" class="font-bold text-lg text-blue-700">Rynek rzemiosła</a>
-            <a href="/products" class="text-gray-700 hover:text-blue-600 transition">Produkty</a>
+            <a href="{{ route('products') }}" class="text-gray-700 hover:text-blue-600 transition">Produkty</a>
+            @auth
+                <a href="{{ route('addProductForm') }}" class="text-gray-700 hover:text-blue-600 transition">Dodaj produkt</a>
+            @endauth
         </div>
         <div>
             @auth
                 <div class="text-sm text-gray-600 flex flex-row items-center gap-6">
-                    <span>Witaj: {{ auth()->user()->name }}</span>
+                    <span>Witaj:<a href="{{ route('dashboard') }}"> {{ auth()->user()->name }}</a></span>
                     <a href="{{ route('logout') }}" class="text-blue-600">Wyloguj</a>
                 </div>
             @else

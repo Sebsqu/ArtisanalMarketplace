@@ -28,6 +28,7 @@ return new class extends Migration
             $table->string('dimensions', 100)->nullable();
             $table->boolean('is_active')->default(true);
             $table->integer('views_count')->default(0);
+            $table->text('urlImages');
             $table->timestamps();
         });
     }

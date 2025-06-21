@@ -22,7 +22,14 @@
                 <div class="bg-red-100 text-red-700 px-4 py-3 rounded mb-4 text-sm text-center">
                     {{ $errors->first('email') }}
                 </div>
+            @elseif ($errors)
+                @foreach ($errors->all() as $error)
+                    <div class="bg-red-100 text-red-700 px-4 py-3 rounded mb-4 text-sm text-center">
+                        {{ $error }}
+                    </div>
+                @endforeach
             @endif
+
 
             <div>
                 <label class="block mb-1 font-semibold text-gray-700" for="email">Adres e-mail</label>

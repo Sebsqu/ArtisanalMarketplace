@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Cache;
 use App\Models\Products\Category;
+use App\Models\Products\Favorites;
 use App\Models\Products\Products;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -52,4 +53,68 @@ class ProductsController extends Controller
             'products'   => $products,
         ]);
     }    
+
+    public function addProductForm(){
+        $categories = Category::all();
+        return view('products.addNew', ['categories' => $categories]);
+    }
+
+    public function addProduct(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        $product = Products::create([
+            'name' => $request->name,
+            'description' => $request->description,
+            'price' => $request->price,
+            'stock_quantity' => $request->stock_quantity,
+            'weight' => $request->weight,
+            'dimensions' => $request->dimensions,
+            'is_active' => $request->has('is_active'),
+            'category_id' => $request->category_id,
+            'user_id' => $userId,
+            'urlImages' => '',
+        ]);
+
+        $imagePaths = [];
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $image) {
+                $filename = $product->id . '_' . $userId . '_' . time() . '_' . preg_replace('/\s+/', '_', $image->getClientOriginalName());
+                $path = $image->storeAs('products', $filename, 'public');
+                $imagePaths[] = 'storage/' . $path; 
+            }
+        }
+
+        $product->urlImages = implode(',', $imagePaths);
+        $product->save();
+
+        return redirect('/')->with('status', 'Produkt dodany!');
+    }
+
+    public function showProduct($id){
+        $product = Products::findOrFail($id);
+        return view('products.showProduct', ['product' => $product]);
+    }
+
+    public function addToFavorite($id)
+    {
+        $userId = auth()->id();
+
+        $fav = Favorites::where('user_id', $userId)
+                        ->where('product_id', $id)
+                        ->first();
+
+        if ($fav) {
+            $fav->delete();
+        } else {
+            Favorites::create([
+                'user_id' => $userId,
+                'product_id' => $id,
+            ]);
+        }
+
+        return redirect('/products');
+    }
+
+
 }

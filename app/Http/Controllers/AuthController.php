@@ -76,11 +76,6 @@ class AuthController extends Controller
                 auth()->logout();
                 return back()->withErrors(['email' => 'Najpierw potwierdź adres e-mail.']);
             } else{
-                session([
-                    'user_id' => auth()->user()->id,
-                    'user_name' => auth()->user()->name,
-                    'user_role' => auth()->user()->role,
-                ]);
                 return redirect('/');
             }
         } else {
