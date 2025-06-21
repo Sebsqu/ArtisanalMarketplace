@@ -5,17 +5,17 @@
             <a href="/products" class="text-gray-700 hover:text-blue-600 transition">Produkty</a>
         </div>
         <div>
-            @if(session('user_id'))
+            @auth
                 <div class="text-sm text-gray-600 flex flex-row items-center gap-6">
-                    <span>Witaj: {{ session('user_name') }}</span>
-                    {{-- <a href="{{ route('logout') }}" class="text-blue-600">Wyloguj</a> --}}
+                    <span>Witaj: {{ auth()->user()->name }}</span>
+                    <a href="{{ route('logout') }}" class="text-blue-600">Wyloguj</a>
                 </div>
             @else
                 <div class="flex flex-row items-center gap-6">
-                    {{-- <a href="{{ route('loginForm') }}" class="hover:text-blue-600 transition">Login</a>
-                    <a href="{{ route('registerForm') }}" class="hover:text-blue-600 transition">Register</a> --}}
+                    <a href="{{ route('loginForm') }}" class="hover:text-blue-600 transition">Login</a>
+                    <a href="{{ route('registerForm') }}" class="hover:text-blue-600 transition">Register</a>
                 </div>
-            @endif
+            @endauth
         </div>
     </div>
 </nav>
