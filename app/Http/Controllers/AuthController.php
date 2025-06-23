@@ -19,7 +19,6 @@ class AuthController extends Controller
 
     public function createUser(Request $request)
     {
-        // dd($request);
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
@@ -76,6 +75,11 @@ class AuthController extends Controller
                 auth()->logout();
                 return back()->withErrors(['email' => 'Najpierw potwierdź adres e-mail.']);
             } else{
+                session()->put([
+                    'user_name' => auth()->user()->name,
+                    'user_role' => auth()->user()->role,
+                    'user_id' => auth()->user()->id,
+                ]);
                 return redirect('/');
             }
         } else {

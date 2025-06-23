@@ -45,12 +45,13 @@ class ProductsController extends Controller
 
             return $query->where('is_active', 1)->get();
         });
-
+        $favoritedProductIds = auth()->check() ? auth()->user()->favoriteProducts->pluck('id')->toArray() : [];
         $categories = Category::all();
 
         return view('products.index', [
             'categories' => $categories,
             'products'   => $products,
+            'favoritedProductIds' => $favoritedProductIds,
         ]);
     }    
 
@@ -113,7 +114,7 @@ class ProductsController extends Controller
             ]);
         }
 
-        return redirect('/products');
+        return redirect()->back();
     }
 
 

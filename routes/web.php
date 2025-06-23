@@ -27,7 +27,11 @@ Route::middleware('IsLoggedIn')->group(function () {
     Route::post('/favorite/{id}', [ProductsController::class, 'addToFavorite'])->name('addToFavorite');
     
     Route::get('/dashboard', [UserController::class, 'dashboard'])->name('dashboard');
-    // Route::get('/editProduct/{id}', [ProductsController::class, 'editProduct'])->name('editProduct');
+    Route::get('/editProduct/{id}', [UserController::class, 'editProduct'])->name('editProduct');
+    Route::post('/saveEditProduct/{id}', [UserController::class, 'saveEditProduct'])->name('saveEditProduct');
+    Route::get('/user-settings/{id}', [UserController::class, 'userSettingsForm'])->name('userSettingsForm');
+    Route::post('/save-user/{id}', [UserController::class, 'saveUser'])->name('saveUser');
+    Route::get('/favorites', [UserController::class, 'favorites'])->name('favorites');
 });
 
 Route::get('/product/{id}', [ProductsController::class, 'showProduct'])->name('showProduct');

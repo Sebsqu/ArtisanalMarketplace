@@ -10,7 +10,7 @@
         <div>
             @auth
                 <div class="text-sm text-gray-600 flex flex-row items-center gap-6">
-                    <span>Witaj:<a href="{{ route('dashboard') }}"> {{ auth()->user()->name }}</a></span>
+                    <span>Witaj:<a href="{{ route('dashboard') }}"> {{ session('user_name') }}</a></span>
                     <a href="{{ route('logout') }}" class="text-blue-600">Wyloguj</a>
                 </div>
             @else
