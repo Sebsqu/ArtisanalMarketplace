@@ -8,6 +8,7 @@ use App\Models\Products\Products;
 use App\Models\Products\Category;
 use App\Models\Products\Favorites;
 use App\Models\User;
+use App\Models\UserRate;
 use Intervention\Image\Facades\Image;
 use Illuminate\Support\Facades\Storage;
 
@@ -96,6 +97,16 @@ class UserController extends Controller
             $user->password = bcrypt($request->password);
         }
 
+        $user->phone_number = $request->phone_number;
+        $user->city = $request->city;
+        $user->postal_code = $request->postal_code;
+        $user->address = $request->address;
+        if ($request->hasFile('avatar')) {
+            $file = $request->file('avatar');
+            $filename = $user->id . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
+            $path = $file->storeAs('users', $filename, 'public');
+            $user->imageUrl = $path;
+        }
         $user->save();
 
         return redirect()->route('userSettingsForm', $user->id)
@@ -104,8 +115,33 @@ class UserController extends Controller
 
     public function favorites()
     {
-        $favorites = User::find(session('user_id'))->favoriteProducts()->get();
+        $favorites = User::find(session('user_id'))->favoriteProducts()->where('is_active', 1)->get();
         return view('dashboard.favorites', ['favorites' => $favorites]);
     }
 
+    public function showUser($id)
+    {
+        $user = User::findOrFail($id);
+        $products = Products::where('user_id', $id)->where('is_active', 1)->get();
+        $rates = UserRate::where('rated_user_id', $id)->limit(10)->get();
+        return view('users.show', ['user' => $user, 'products' => $products, 'rates' => $rates]);
+    }
+
+    public function rateUser(Request $request, $id)
+    {
+        $request->validate([
+            'rating' => 'required|integer|min:1|max:5',
+            'comment' => 'nullable|string|max:500',
+        ]);
+
+        $userRate = new UserRate();
+        $userRate->user_id = session('user_id');
+        $userRate->rated_user_id = $id;
+        $userRate->rate = $request->input('rating');
+        $userRate->comment = $request->input('comment');
+        $userRate->ip_address = $request->ip();
+        $userRate->save();
+
+        return redirect()->route('showUser', $id)->with('status', 'Ocena została wystawiona.');
+    }
 }

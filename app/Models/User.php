@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Models\Products\Products;
+use App\Models\Products\ProductRate;
 
 class User extends Authenticatable
 {
@@ -22,7 +23,13 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'email_verification_token'
+        'email_verification_token',
+        'phone_number',
+        'city',
+        'postal_code',
+        'address',
+        'is_active',
+        'imageUrl',
     ];
 
     /**
@@ -51,5 +58,17 @@ class User extends Authenticatable
     public function favoriteProducts()
     {
         return $this->belongsToMany(Products::class, 'favorites', 'user_id', 'product_id');
+    }
+    public function products()
+    {
+        return $this->hasMany(Products::class, 'user_id');
+    }
+    public function userRates()
+    {
+        return $this->hasMany(UserRate::class, 'rated_user_id');
+    }
+    public function productRates()
+    {
+        return $this->hasMany(ProductRate::class, 'rated_product_id');
     }
 }

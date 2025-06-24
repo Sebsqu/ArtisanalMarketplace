@@ -6,15 +6,19 @@
 
     <div class="max-w-[1200px] mx-auto px-4 py-8">
         <form action="{{ route('saveUser', session('user_id')) }}" method="POST"
-              class="max-w-md mx-auto bg-white/90 rounded-3xl shadow-lg p-10 flex flex-col gap-6 backdrop-blur-md">
+              class="max-w-md mx-auto bg-white/90 rounded-3xl shadow-lg p-10 flex flex-col gap-6 backdrop-blur-md" enctype="multipart/form-data">
             @csrf
 
-            <div class="flex flex-col items-center mb-2">
-                <div class="bg-blue-100 rounded-full p-3 mb-2 shadow">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                </div>
+            <div class="flex flex-col items-center mb-6">
+                @if($user->imageUrl)
+                    <img src="{{ asset('storage/' . $user->imageUrl) }}" alt="Avatar" class="w-32 h-32 rounded-full object-cover shadow mb-2 border-4 border-blue-200">
+                @else
+                    <div class="w-32 h-32 rounded-full bg-blue-100 flex items-center justify-center mb-2 shadow border-4 border-blue-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                    </div>
+                @endif
                 <h1 class="text-2xl font-extrabold text-blue-700 text-center">Aktualizuj dane konta: {{ $user->name }}</h1>
             </div>
 
@@ -54,6 +58,43 @@
                 <input type="password" id="password_confirmation" name="password_confirmation" autocomplete="off"
                     class="w-full border border-transparent rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition placeholder-gray-400 bg-blue-50"
                     placeholder="**********">
+            </div>
+
+            <div>
+                <label class="block mb-1 font-semibold text-gray-700" for="phone_number">Numer telefonu</label>
+                <input type="text" id="phone_number" name="phone_number" required value="{{ $user->phone_number }}" autocomplete="off"
+                    class="w-full border border-transparent rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition placeholder-gray-400 bg-blue-50"
+                    placeholder="+49 123 456 789">
+            </div>
+
+            <div>
+                <label class="block mb-1 font-semibold text-gray-700" for="city">Miasto</label>
+                <input type="text" id="city" name="city" required value="{{ $user->city }}" autocomplete="off"
+                    class="w-full border border-transparent rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition placeholder-gray-400 bg-blue-50"
+                    placeholder="Katowice">
+            </div>
+
+            <div>
+                <label class="block mb-1 font-semibold text-gray-700" for="postal_code">Kod pocztowy</label>
+                <input type="text" id="postal_code" name="postal_code" required value="{{ $user->postal_code }}" autocomplete="off"
+                    class="w-full border border-transparent rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition placeholder-gray-400 bg-blue-50"
+                    placeholder="42-345">
+            </div>
+
+            <div>
+                <label class="block mb-1 font-semibold text-gray-700" for="address">Adres</label>
+                <input type="text" id="address" name="address" required value="{{ $user->address }}" autocomplete="off"
+                    class="w-full border border-transparent rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition placeholder-gray-400 bg-blue-50"
+                    placeholder="Tadeusza Kościuszki 10/5">
+            </div>
+
+            <div>
+                <label class="block mb-1 font-semibold text-gray-700" for="avatar">Zdjęcie profilowe</label>
+                <input type="file" id="avatar" name="avatar"
+                    class="w-full border border-transparent rounded-xl px-4 py-2 bg-blue-50">
+                @if($user->avatar)
+                    <img src="{{ asset('storage/' . $user->avatar) }}" alt="Avatar" class="mt-2 w-24 h-24 rounded-full object-cover">
+                @endif
             </div>
             
             @if (session('status'))

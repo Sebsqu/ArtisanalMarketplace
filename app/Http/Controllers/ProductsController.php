@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Cache;
 use App\Models\Products\Category;
 use App\Models\Products\Favorites;
 use App\Models\Products\Products;
+use App\Models\Products\ProductRate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -94,7 +95,8 @@ class ProductsController extends Controller
 
     public function showProduct($id){
         $product = Products::findOrFail($id);
-        return view('products.showProduct', ['product' => $product]);
+        $productRates = ProductRate::where('rated_product_id', $id)->limit(10)->get();
+        return view('products.showProduct', ['product' => $product, 'productRates' => $productRates]);
     }
 
     public function addToFavorite($id)
@@ -117,5 +119,22 @@ class ProductsController extends Controller
         return redirect()->back();
     }
 
+    public function rateProduct(Request $request, $id)
+    {
+        $request->validate([
+            'rating' => 'required|integer|min:1|max:5',
+            'comment' => 'nullable|string|max:500',
+        ]);
+
+        $userRate = new ProductRate();
+        $userRate->user_id = session('user_id');
+        $userRate->rated_product_id = $id;
+        $userRate->rate = $request->input('rating');
+        $userRate->comment = $request->input('comment');
+        $userRate->ip_address = $request->ip();
+        $userRate->save();
+
+        return redirect()->route('showProduct', $id)->with('status', 'Ocena została wystawiona.');
+    }
 
 }

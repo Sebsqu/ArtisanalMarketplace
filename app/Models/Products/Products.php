@@ -15,5 +15,12 @@ class Products extends Model
     {
         return $this->belongsToMany(User::class, 'favorites', 'product_id', 'user_id');
     }
-
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+    public function productRate()
+    {
+        return $this->hasMany(ProductRate::class, 'rated_product_id');
+    }
 }

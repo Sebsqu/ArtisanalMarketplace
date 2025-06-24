@@ -32,6 +32,10 @@ Route::middleware('IsLoggedIn')->group(function () {
     Route::get('/user-settings/{id}', [UserController::class, 'userSettingsForm'])->name('userSettingsForm');
     Route::post('/save-user/{id}', [UserController::class, 'saveUser'])->name('saveUser');
     Route::get('/favorites', [UserController::class, 'favorites'])->name('favorites');
+
+    Route::post('/rate-user/{id}', [UserController::class, 'rateUser'])->name('rateUser');
+    Route::post('/rate-product/{id}', [ProductsController::class, 'rateProduct'])->name('rateProduct');
 });
 
 Route::get('/product/{id}', [ProductsController::class, 'showProduct'])->name('showProduct');
+Route::get('/user/{id}', [UserController::class, 'showUser'])->name('showUser');
