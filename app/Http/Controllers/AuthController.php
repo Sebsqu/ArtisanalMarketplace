@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\Cart;
 
 class AuthController extends Controller
 {
@@ -75,11 +76,18 @@ class AuthController extends Controller
                 auth()->logout();
                 return back()->withErrors(['email' => 'Najpierw potwierdź adres e-mail.']);
             } else{
+                $cart = Cart::where('user_id', auth()->user()->id)->first();
                 session()->put([
                     'user_name' => auth()->user()->name,
                     'user_role' => auth()->user()->role,
                     'user_id' => auth()->user()->id,
+                    'cart' => $cart ? json_decode($cart->cart_items, true) : []
                 ]);
+                
+                if(!empty($cart)){
+                    $cart->delete();
+                }
+                
                 return redirect('/');
             }
         } else {
@@ -89,6 +97,12 @@ class AuthController extends Controller
 
     public function logout()
     {
+        if(!empty(session('cart'))){
+            $cart = new Cart();
+            $cart->user_id = session('user_id');
+            $cart->cart_items = json_encode(session('cart'));
+            $cart->save();
+        }
         auth()->logout();
         session()->flush();
         return redirect('/');

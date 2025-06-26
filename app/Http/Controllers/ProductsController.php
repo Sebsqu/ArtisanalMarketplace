@@ -8,8 +8,12 @@ use App\Models\Products\Category;
 use App\Models\Products\Favorites;
 use App\Models\Products\Products;
 use App\Models\Products\ProductRate;
+use App\Models\User;
+use App\Models\Order;
+use App\Models\OrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class ProductsController extends Controller
 {
@@ -135,6 +139,152 @@ class ProductsController extends Controller
         $userRate->save();
 
         return redirect()->route('showProduct', $id)->with('status', 'Ocena została wystawiona.');
+    }
+
+    public function addToCart($id)
+    {
+        $cart = session()->get('cart', []);
+        $product = Products::find($id);
+        if (isset($cart[$id])) {
+            if ($cart[$id]['quantity'] < $product->stock_quantity) {
+                $cart[$id]['quantity']++;
+            }
+        } else {
+            $cart[$id] = [
+                'id' => $product->id,
+                'name' => $product->name,
+                'price' => $product->price,
+                'quantity' => 1,
+                'urlImages' => $product->urlImages,
+            ];
+        }
+
+        session()->put('cart', $cart);
+        return redirect()->back();
+    }
+
+    public function cart()
+    {
+        $items = session('cart', []);
+        return view('cart.cart', ['items' => $items]);
+    }
+
+    public function removeItem($id)
+    {
+        $cart = session()->get('cart', []);
+        if (isset($cart[$id])) {
+            if ($cart[$id]['quantity'] > 1) {
+                $cart[$id]['quantity']--;
+            } else {
+                unset($cart[$id]);
+            }
+            session()->put('cart', $cart);
+        }
+        return redirect()->back();
+    }
+
+    public function checkout()
+    {
+        $user = User::find(session('user_id'));
+        $items = session('cart', []);
+        return view('cart.checkout', ['items' => $items, 'user' => $user]);
+    }
+
+    public function placeOrder(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'city' => 'required|string|max:255',
+            'address' => 'required|string|max:255',
+            'postal_code' => 'required|string|max:20',
+            'phone_number' => 'required|string|max:20',
+            'email' => 'required|email|max:255',
+        ]);
+
+        $userId = session('user_id');
+        $cart = session('cart', []);
+        $totalPrice = array_sum(array_map(function($item) {
+            return $item['price'] * $item['quantity'];
+        }, $cart));
+        $totalItems = array_sum(array_column($cart, 'quantity'));
+    
+        $newOrder = new Order();
+        $newOrder->user_id = $userId;
+        $newOrder->name = $request->name;
+        $newOrder->city = $request->city;
+        $newOrder->address = $request->address;
+        $newOrder->postal_code = $request->postal_code;
+        $newOrder->phone_number = $request->phone_number;
+        $newOrder->email = $request->email;
+        $newOrder->total_price = $totalPrice;
+        $newOrder->total_items = $totalItems;
+        $newOrder->save();
+
+        foreach($cart as $item){
+            $product = Products::find($item['id']);
+            $newOrderItem = new OrderItem();
+            $newOrderItem->order_id = $newOrder->id;
+            $newOrderItem->product_id = $item['id'];
+            $newOrderItem->product_name = $item['name'];
+            $newOrderItem->product_description = $product->description;
+            $newOrderItem->price = $item['price'];
+            $newOrderItem->quantity = $item['quantity'];
+            $newOrderItem->weight = $product->weight;
+            $newOrderItem->total_price = $item['price'] * $item['quantity'];
+            $newOrderItem->dimensions = $product->dimensions;
+            $newOrderItem->image_url = $product->urlImages;
+            $newOrderItem->save();
+        }
+        
+        
+        foreach($cart as $item){
+            Products::where('id', $item['id'])->decrement('stock_quantity', $item['quantity']);
+        }
+
+        $owners = [];
+        foreach ($cart as $item) {
+            $product = Products::find($item['id']);
+            if (!$product || !$product->user) continue;
+            $ownerId = $product->user_id;
+            if (!isset($owners[$ownerId])) {
+                $owners[$ownerId] = [
+                    'email' => $product->user->email,
+                    'name' => $product->user->name,
+                    'items' => [],
+                ];
+            }
+            $owners[$ownerId]['items'][] = $item;
+        }
+
+        foreach ($owners as $owner) {
+            Mail::raw(
+                "Twoje produkty zostały sprzedane w zamówieniu nr {$newOrder->id}:\n" .
+                collect($owner['items'])->map(function($item) {
+                    return "- {$item['name']} (ilość: {$item['quantity']})";
+                })->implode("\n"),
+                function($message) use ($owner, $newOrder) {
+                    $message->to($owner['email'])
+                        ->subject("Sprzedaż Twoich produktów - zamówienie nr {$newOrder->id}");
+                }
+            );
+        }
+
+        Mail::raw(
+            "Dziękujemy za złożenie zamówienia nr {$newOrder->id}!\n\n" .
+            "Podsumowanie zamówienia:\n" .
+            collect($cart)->map(function($item) {
+                return "- {$item['name']} (ilość: {$item['quantity']}, cena: {$item['price']} zł)";
+            })->implode("\n") .
+            "\n\nŁączna kwota: {$newOrder->total_price} zł\n",
+            function($message) use ($request, $newOrder) {
+                $message->to($request->email)
+                    ->subject("Potwierdzenie zamówienia nr {$newOrder->id}");
+            }
+        );
+
+        session()->forget('cart');
+
+        return redirect('/')->with('status', 'Zamówienie zostało złożone!');
     }
 
 }

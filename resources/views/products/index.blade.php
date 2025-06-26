@@ -61,28 +61,47 @@
                 <div class="flex justify-between items-center mt-auto pt-2 border-t border-gray-100 relative">
 
                     <span class="text-lg font-semibold text-green-600">{{ number_format($product->price, 2) }} zł</span>
-                    @auth
-                        @php
-                            $isFavorited = in_array($product->id, $favoritedProductIds);
-                        @endphp
+                    <div class="flex items-center gap-2">
+                        @auth
+                            @php
+                                $isFavorited = in_array($product->id, $favoritedProductIds);
+                            @endphp
 
-                        <form action="{{ route('addToFavorite', $product->id) }}" method="POST" class="inline-block">
-                            @csrf
-                            <button type="submit" aria-label="Polub ogłoszenie"
-                                class="{{ $isFavorited ? 'text-red-500 hover:text-gray-400' : 'text-gray-400 hover:text-red-500' }} transition-colors focus:outline-none cursor-pointer">
-                                <svg xmlns="http://www.w3.org/2000/svg"
-                                    fill="currentColor"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                    class="w-6 h-6">
-                                    <path stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 21.364l-7.682-7.682a4.5 4.5 0 010-6.364z" />
-                                </svg>
-                            </button>
-                        </form>
-                    @endauth
+                            <form action="{{ route('addToFavorite', $product->id) }}" method="POST" class="inline-block">
+                                @csrf
+                                <button type="submit" aria-label="Polub ogłoszenie"
+                                    class="{{ $isFavorited ? 'text-red-500 hover:text-gray-400' : 'text-gray-400 hover:text-red-500' }} transition-colors focus:outline-none cursor-pointer">
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                        fill="currentColor"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        class="w-6 h-6">
+                                        <path stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 21.364l-7.682-7.682a4.5 4.5 0 010-6.364z" />
+                                    </svg>
+                                </button>
+                            </form>
+                            @auth
+                                <form action="{{ route('addToCart', $product->id) }}" method="POST" class="inline-block">
+                                    @csrf
+                                    <input type="hidden" name="product_id" value="{{ $product->id }}">
+                                    <button type="submit" aria-label="Dodaj do koszyka"
+                                        class="text-gray-400 hover:text-blue-600 transition-colors focus:outline-none cursor-pointer">
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                            class="w-6 h-6">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.35 2.7A1 1 0 007 17h10a1 1 0 00.95-.68L21 13M7 13V6a1 1 0 011-1h6a1 1 0 011 1v7" />
+                                        </svg>
+                                    </button>
+                                </form>
+                            @endauth
+                        @endauth
+                    </div>
                 </div>
 
             </div>
