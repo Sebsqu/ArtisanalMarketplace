@@ -11,7 +11,7 @@
         class="px-4 py-2 rounded-full bg-blue-50 text-blue-700 font-medium hover:bg-blue-100 transition">
         Polubione ogłoszenia
     </a>
-    <a href="#"
+    <a href="{{ route('ordersHistory') }}"
         class="px-4 py-2 rounded-full bg-blue-50 text-blue-700 font-medium hover:bg-blue-100 transition">
         Historia zamówień
     </a>

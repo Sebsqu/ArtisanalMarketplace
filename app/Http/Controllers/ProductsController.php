@@ -26,7 +26,8 @@ class ProductsController extends Controller
             'search'     => $request->query('search'),
         ];
 
-        $cacheKey = 'products_' . md5(json_encode($filters));
+        $page = $request->query('page', 1);
+        $cacheKey = 'products_' . md5(json_encode($filters)) . '_page_' . $page;
 
         $products = Cache::remember($cacheKey, 60, function () use ($filters) {
             $query = Products::query();
@@ -48,7 +49,7 @@ class ProductsController extends Controller
                 });
             }
 
-            return $query->where('is_active', 1)->get();
+            return $query->where('is_active', 1)->paginate(6);
         });
         $favoritedProductIds = auth()->check() ? auth()->user()->favoriteProducts->pluck('id')->toArray() : [];
         $categories = Category::all();
@@ -99,7 +100,7 @@ class ProductsController extends Controller
 
     public function showProduct($id){
         $product = Products::findOrFail($id);
-        $productRates = ProductRate::where('rated_product_id', $id)->limit(10)->get();
+        $productRates = ProductRate::with('user')->where('rated_product_id', $id)->limit(10)->get();
         return view('products.showProduct', ['product' => $product, 'productRates' => $productRates]);
     }
 

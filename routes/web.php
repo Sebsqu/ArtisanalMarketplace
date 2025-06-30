@@ -42,6 +42,7 @@ Route::middleware('IsLoggedIn')->group(function () {
     Route::post('/save-user/{id}', [UserController::class, 'saveUser'])->name('saveUser');
     Route::get('/favorites', [UserController::class, 'favorites'])->name('favorites');
     Route::post('/rate-user/{id}', [UserController::class, 'rateUser'])->name('rateUser');
+    Route::get('/ordersHistory', [UserController::class, 'ordersHistory'])->name('ordersHistory');
 });
 
 

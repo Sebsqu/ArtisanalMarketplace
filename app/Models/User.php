@@ -71,4 +71,8 @@ class User extends Authenticatable
     {
         return $this->hasMany(ProductRate::class, 'rated_product_id');
     }
+    public function orders()
+    {
+        return $this->hasMany(Order::class, 'user_id');
+    }
 }

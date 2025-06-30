@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Products\Products;
 use App\Models\Products\Category;
 use App\Models\Products\Favorites;
+use App\Models\Order;
 use App\Models\User;
 use App\Models\UserRate;
 use Intervention\Image\Facades\Image;
@@ -143,5 +144,11 @@ class UserController extends Controller
         $userRate->save();
 
         return redirect()->route('showUser', $id)->with('status', 'Ocena została wystawiona.');
+    }
+
+    public function ordersHistory()
+    {
+        $orders = Order::with('orderItems')->where('user_id', session('user_id'))->orderBy('created_at', 'desc')->get();
+        return view('dashboard.ordersHistory', ['orders' => $orders]);
     }
 }
