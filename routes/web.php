@@ -5,6 +5,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProductsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\AdminController;
 
 Route::get('/', [HomeController::class, 'index']);
 
@@ -43,6 +44,10 @@ Route::middleware('IsLoggedIn')->group(function () {
     Route::get('/favorites', [UserController::class, 'favorites'])->name('favorites');
     Route::post('/rate-user/{id}', [UserController::class, 'rateUser'])->name('rateUser');
     Route::get('/ordersHistory', [UserController::class, 'ordersHistory'])->name('ordersHistory');
+});
+
+Route::middleware('IsAdmin')->group(function () {
+    Route::get('/adminDashboard', [AdminController::class, 'adminDashboard'])->name('adminDashboard');
 });
 
 

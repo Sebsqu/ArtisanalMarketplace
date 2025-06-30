@@ -100,6 +100,8 @@ class ProductsController extends Controller
 
     public function showProduct($id){
         $product = Products::findOrFail($id);
+        $product->views_count++;
+        $product->save();
         $productRates = ProductRate::with('user')->where('rated_product_id', $id)->limit(10)->get();
         return view('products.showProduct', ['product' => $product, 'productRates' => $productRates]);
     }

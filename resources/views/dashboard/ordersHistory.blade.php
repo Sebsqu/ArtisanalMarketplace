@@ -1,4 +1,3 @@
-{{-- filepath: c:\Users\Sebsqu\Desktop\ArtisanalMarketplace\resources\views\dashboard\ordersHistory.blade.php --}}
 @extends('app.app')
 
 @section('title', 'Historia zamówień')
