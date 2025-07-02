@@ -10,9 +10,18 @@ use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Cart;
+use App\Repository\AuthRepositoryInterface;
+use App\Services\AuthNotificationService;
 
 class AuthController extends Controller
 {
+    public function __construct(
+        AuthRepositoryInterface $authRepository,
+        AuthNotificationService $authNotification
+    ) {
+        $this->authRepository = $authRepository;
+        $this->authNotification = $authNotification;
+    }
     public function registerForm()
     {
         return view('auth.register');
@@ -27,32 +36,22 @@ class AuthController extends Controller
         ]);
 
         $token = Str::random(64);
-
-        $user = User::create([
+        $data = [
             'name' => $request->name,
             'email' => $request->email,
             'password' => bcrypt($request->password),
             'email_verification_token' => bcrypt($token)
-        ]);
-
-        Mail::raw(
-            'Aby aktywować konto kliknij w poniższy link: ' . url('/verify-account/' . $user->id . '/' . $token),
-            function($message) use ($user){
-                $message->to($user->email)->subject('Aktywacja konta na rynku rzemieślniczym');
-            }
-        );
+        ];
+        $user = $this->authRepository->createUser($data);
+        $this->authNotification->registerUser($user, $token);
 
         return redirect()->route('registerForm')->with('status', 'Aktywuj konto linkiem wysłanym na podany adres email');
     }
 
     public function verifyAccount($id, $token)
     {
-        $user = User::findOrFail($id);
-        if(Hash::check($token, $user->email_verification_token)){
-            $user->email_verified_at = now();
-            $user->email_verification_token = null;
-            $user->save();
-
+        $verified = $this->authRepository->verifyAccount($id, $token);
+        if ($verified) {
             return redirect('/loginForm')->with('status', 'Konto zostało potwierdzone. Możesz się zalogować.');
         } else {
             return redirect('/loginForm')->withErrors(['email' => 'Nieprawidłowy token aktywacyjny.']);
@@ -142,9 +141,7 @@ class AuthController extends Controller
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($user, $password) {
-                $user->forceFill([
-                    'password' => Hash::make($password),
-                ])->save();
+                $this->authRepository->resetPassword($user, $password);
             }
         );
 

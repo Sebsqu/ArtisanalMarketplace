@@ -14,9 +14,23 @@ use App\Models\OrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use App\Repository\ProductRepositoryInterface;
+use App\Repository\OrderRepositoryInterface;
+use App\Services\OrderNotificationService;
+
 
 class ProductsController extends Controller
 {
+    public function __construct(
+        ProductRepositoryInterface $productRepository, 
+        OrderRepositoryInterface $orderRepository, 
+        OrderNotificationService $orderNotificationService
+    ) {
+        $this->productRepository = $productRepository;
+        $this->orderRepository = $orderRepository;
+        $this->orderNotificationService = $orderNotificationService;
+    }
+
     public function index(Request $request)
     {
         $filters = [
@@ -25,52 +39,23 @@ class ProductsController extends Controller
             'priceTo'    => $request->query('priceTo'),
             'search'     => $request->query('search'),
         ];
-
-        $page = $request->query('page', 1);
-        $cacheKey = 'products_' . md5(json_encode($filters)) . '_page_' . $page;
-
-        $products = Cache::remember($cacheKey, 60, function () use ($filters) {
-            $query = Products::query();
-
-            if (!empty($filters['category'])) {
-                $query->where('category_id', $filters['category']);
-            }
-            if (!empty($filters['priceFrom'])) {
-                $query->where('price', '>=', $filters['priceFrom']);
-            }
-            if (!empty($filters['priceTo'])) {
-                $query->where('price', '<=', $filters['priceTo']);
-            }
-            if (!empty($filters['search'])) {
-                $search = $filters['search'];
-                $query->where(function($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('description', 'like', "%{$search}%");
-                });
-            }
-
-            return $query->where('is_active', 1)->paginate(6);
-        });
-        $favoritedProductIds = auth()->check() ? auth()->user()->favoriteProducts->pluck('id')->toArray() : [];
-        $categories = Category::all();
-
+        
         return view('products.index', [
-            'categories' => $categories,
-            'products'   => $products,
-            'favoritedProductIds' => $favoritedProductIds,
+            'products' => $this->productRepository->getAllProducts($filters, 6),
+            'categories' => $this->productRepository->getAllCategories(),
+            'favoritedProductIds' => $this->productRepository->getAllFavorites(session('user_id')),
         ]);
     }    
 
     public function addProductForm(){
-        $categories = Category::all();
-        return view('products.addNew', ['categories' => $categories]);
+        return view('products.addNew', [
+            'categories' => $this->productRepository->getAllCategories(),
+        ]);
     }
 
     public function addProduct(Request $request)
     {
-        $userId = $request->user()->id;
-
-        $product = Products::create([
+        $product = $this->productRepository->addProduct([
             'name' => $request->name,
             'description' => $request->description,
             'price' => $request->price,
@@ -79,14 +64,14 @@ class ProductsController extends Controller
             'dimensions' => $request->dimensions,
             'is_active' => $request->has('is_active'),
             'category_id' => $request->category_id,
-            'user_id' => $userId,
+            'user_id' => session('user_id'),
             'urlImages' => '',
         ]);
 
         $imagePaths = [];
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $image) {
-                $filename = $product->id . '_' . $userId . '_' . time() . '_' . preg_replace('/\s+/', '_', $image->getClientOriginalName());
+                $filename = $product->id . '_' . session('user_id') . '_' . time() . '_' . preg_replace('/\s+/', '_', $image->getClientOriginalName());
                 $path = $image->storeAs('products', $filename, 'public');
                 $imagePaths[] = 'storage/' . $path; 
             }
@@ -99,30 +84,17 @@ class ProductsController extends Controller
     }
 
     public function showProduct($id){
-        $product = Products::findOrFail($id);
-        $product->views_count++;
-        $product->save();
-        $productRates = ProductRate::with('user')->where('rated_product_id', $id)->limit(10)->get();
-        return view('products.showProduct', ['product' => $product, 'productRates' => $productRates]);
+        $this->productRepository->incrementViews($id);
+
+        return view('products.showProduct', [
+            'product' => $this->productRepository->showProduct($id), 
+            'productRates' => $this->productRepository->productRates($id)
+        ]);
     }
 
     public function addToFavorite($id)
     {
-        $userId = auth()->id();
-
-        $fav = Favorites::where('user_id', $userId)
-                        ->where('product_id', $id)
-                        ->first();
-
-        if ($fav) {
-            $fav->delete();
-        } else {
-            Favorites::create([
-                'user_id' => $userId,
-                'product_id' => $id,
-            ]);
-        }
-
+        $this->productRepository->addToFavorite($id, session('user_id'));
         return redirect()->back();
     }
 
@@ -133,13 +105,13 @@ class ProductsController extends Controller
             'comment' => 'nullable|string|max:500',
         ]);
 
-        $userRate = new ProductRate();
-        $userRate->user_id = session('user_id');
-        $userRate->rated_product_id = $id;
-        $userRate->rate = $request->input('rating');
-        $userRate->comment = $request->input('comment');
-        $userRate->ip_address = $request->ip();
-        $userRate->save();
+        $this->productRepository->rateProduct([
+            'user_id' => session('user_id'),
+            'rated_product_id' => $id,
+            'rate' => $request->input('rating'),
+            'comment' => $request->input('comment'),
+            'ip_address' => $request->ip(),
+        ]);
 
         return redirect()->route('showProduct', $id)->with('status', 'Ocena została wystawiona.');
     }
@@ -147,7 +119,8 @@ class ProductsController extends Controller
     public function addToCart($id)
     {
         $cart = session()->get('cart', []);
-        $product = Products::find($id);
+        $product = $this->productRepository->findProduct($id);
+
         if (isset($cart[$id])) {
             if ($cart[$id]['quantity'] < $product->stock_quantity) {
                 $cart[$id]['quantity']++;
@@ -188,9 +161,11 @@ class ProductsController extends Controller
 
     public function checkout()
     {
-        $user = User::find(session('user_id'));
         $items = session('cart', []);
-        return view('cart.checkout', ['items' => $items, 'user' => $user]);
+        return view('cart.checkout', [
+            'items' => $items, 
+            'user' => $this->productRepository->findUser(session('user_id')),
+        ]);
     }
 
     public function placeOrder(Request $request)
@@ -206,84 +181,25 @@ class ProductsController extends Controller
 
         $userId = session('user_id');
         $cart = session('cart', []);
-        $totalPrice = array_sum(array_map(function($item) {
-            return $item['price'] * $item['quantity'];
-        }, $cart));
+
+        $totalPrice = array_sum(array_map(fn($item) => $item['price'] * $item['quantity'], $cart));
         $totalItems = array_sum(array_column($cart, 'quantity'));
+
+        $orderData = [
+            'user_id' => $userId,
+            'name' => $request->name,
+            'city' => $request->city,
+            'address' => $request->address,
+            'postal_code' => $request->postal_code,
+            'phone_number' => $request->phone_number,
+            'email' => $request->email,
+            'total_price' => $totalPrice,
+            'total_items' => $totalItems,
+        ];
     
-        $newOrder = new Order();
-        $newOrder->user_id = $userId;
-        $newOrder->name = $request->name;
-        $newOrder->city = $request->city;
-        $newOrder->address = $request->address;
-        $newOrder->postal_code = $request->postal_code;
-        $newOrder->phone_number = $request->phone_number;
-        $newOrder->email = $request->email;
-        $newOrder->total_price = $totalPrice;
-        $newOrder->total_items = $totalItems;
-        $newOrder->save();
-
-        foreach($cart as $item){
-            $product = Products::find($item['id']);
-            $newOrderItem = new OrderItem();
-            $newOrderItem->order_id = $newOrder->id;
-            $newOrderItem->product_id = $item['id'];
-            $newOrderItem->product_name = $item['name'];
-            $newOrderItem->product_description = $product->description;
-            $newOrderItem->price = $item['price'];
-            $newOrderItem->quantity = $item['quantity'];
-            $newOrderItem->weight = $product->weight;
-            $newOrderItem->total_price = $item['price'] * $item['quantity'];
-            $newOrderItem->dimensions = $product->dimensions;
-            $newOrderItem->image_url = $product->urlImages;
-            $newOrderItem->save();
-        }
-        
-        
-        foreach($cart as $item){
-            Products::where('id', $item['id'])->decrement('stock_quantity', $item['quantity']);
-        }
-
-        $owners = [];
-        foreach ($cart as $item) {
-            $product = Products::find($item['id']);
-            if (!$product || !$product->user) continue;
-            $ownerId = $product->user_id;
-            if (!isset($owners[$ownerId])) {
-                $owners[$ownerId] = [
-                    'email' => $product->user->email,
-                    'name' => $product->user->name,
-                    'items' => [],
-                ];
-            }
-            $owners[$ownerId]['items'][] = $item;
-        }
-
-        foreach ($owners as $owner) {
-            Mail::raw(
-                "Twoje produkty zostały sprzedane w zamówieniu nr {$newOrder->id}:\n" .
-                collect($owner['items'])->map(function($item) {
-                    return "- {$item['name']} (ilość: {$item['quantity']})";
-                })->implode("\n"),
-                function($message) use ($owner, $newOrder) {
-                    $message->to($owner['email'])
-                        ->subject("Sprzedaż Twoich produktów - zamówienie nr {$newOrder->id}");
-                }
-            );
-        }
-
-        Mail::raw(
-            "Dziękujemy za złożenie zamówienia nr {$newOrder->id}!\n\n" .
-            "Podsumowanie zamówienia:\n" .
-            collect($cart)->map(function($item) {
-                return "- {$item['name']} (ilość: {$item['quantity']}, cena: {$item['price']} zł)";
-            })->implode("\n") .
-            "\n\nŁączna kwota: {$newOrder->total_price} zł\n",
-            function($message) use ($request, $newOrder) {
-                $message->to($request->email)
-                    ->subject("Potwierdzenie zamówienia nr {$newOrder->id}");
-            }
-        );
+        $order = $this->orderRepository->placeOrder($orderData, $cart);
+        $this->orderNotificationService->notifyOwners($order);
+        $this->orderNotificationService->notifyCustomer($order);
 
         session()->forget('cart');
 
