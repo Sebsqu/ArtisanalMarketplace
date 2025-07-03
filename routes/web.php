@@ -48,6 +48,12 @@ Route::middleware('IsLoggedIn')->group(function () {
 
 Route::middleware('IsAdmin')->group(function () {
     Route::get('/adminDashboard', [AdminController::class, 'adminDashboard'])->name('adminDashboard');
+    Route::get('/adminEditProduct/{id}', [AdminController::class, 'adminEditProduct'])->name('adminEditProduct');
+    Route::post('/adminSaveEditProduct/{id}', [AdminController::class, 'adminSaveEditProduct'])->name('adminSaveEditProduct');
+    Route::get('/adminUsers', [AdminController::class, 'adminUsers'])->name('adminUsers');
+    Route::get('/adminEditUser/{id}', [AdminController::class, 'adminEditUser'])->name('adminEditUser');
+    Route::post('/adminSaveEditUser/{id}', [AdminController::class, 'adminSaveEditUser'])->name('adminSaveEditUser');
+    Route::get('/adminOrders', [AdminController::class, 'adminOrders'])->name('adminOrders');
 });
 
 

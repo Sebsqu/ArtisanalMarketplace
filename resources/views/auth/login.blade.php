@@ -52,7 +52,7 @@
             @endif
 
             <button type="submit"
-                class="w-full bg-gradient-to-r from-cyan-500 via-blue-500 to-blue-700 text-white font-bold py-2 rounded-xl hover:from-blue-600 hover:to-cyan-600 hover:via-blue-700 transition text-lg shadow-md mt-2 focus:outline-none focus:ring-2 focus:ring-cyan-400">
+                class="w-full bg-gradient-to-r from-cyan-500 via-blue-500 to-blue-700 text-white font-bold py-2 rounded-xl hover:from-blue-600 hover:to-cyan-600 hover:via-blue-700 transition text-lg shadow-md mt-2 focus:outline-none focus:ring-2 focus:ring-cyan-400 cursor-pointer">
                 Zaloguj się
             </button>
 
